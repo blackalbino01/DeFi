@@ -6,13 +6,14 @@ module.exports = async function(callback) {
 
 	try{
 		const accounts = await web3.eth.getAccounts();
-		const owner = accounts[1]
+		const owner = accounts[0]
 
 		const HUSDContract = await HUSD.new({from: owner});
 
-		const test = await swapTokens.swap(DAI, WETH, amountIn, {from: trader})
+		const test = await HUSDContract.issue({from: owner, value: web3.utils.toWei('0.04','ether')});
+		//const test = await HUSDContract.getLatestPrice({from:owner});
 
-		console.log(test.receipt.status)
+		console.log(test);
 	}
 
 	catch(error){
