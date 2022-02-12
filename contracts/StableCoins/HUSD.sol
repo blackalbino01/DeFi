@@ -7,6 +7,7 @@ import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 contract HUSD is ERC20{
 
 	AggregatorV3Interface internal priceFeed;
+	uint public ethCollateralFactor = 7500;
 
 
 
@@ -17,9 +18,11 @@ contract HUSD is ERC20{
 	function issue() 
 		public 
 		payable{
-			uint amount = (msg.value * getLatestPrice());
 
-			_mint(msg.sender, amount * 10**18);
+			uint collateralValue = (msg.value * ethCollateralFactor);
+			uint amount = (collateralValue * getLatestPrice()) / 1 ether;
+
+			_mint(msg.sender, amount);
 	}
 
 	/**
@@ -33,21 +36,20 @@ contract HUSD is ERC20{
             uint timeStamp,
             uint80 answeredInRound
         ) = priceFeed.latestRoundData();
-        return uint(price);
+        return uint(price/10**8);
     }
 
 
-    function withdraw(uint amount) public returns (uint){
+    function withdraw(uint HUSDAmount) public returns (uint){
 
-	    require(amount <= balanceOf(msg.sender));
-	    amountInWei = amount / getLatestPrice();
+	    require(HUSDAmount <= balanceOf(msg.sender));
+	    uint ethAmount = (HUSDAmount * 1 ether) / getLatestPrice();
 
-	    if(this.balance <= amountInWei) {
-	      amountInWei = (amountInWei * this.balance * getLatestPrice() / (1 ether * _totalSupply);
+	    if(address(this).balance <= ethAmount) {
+	      ethAmount = (ethAmount * address(this).balance * getLatestPrice()) / (totalSupply() * 1 ether);
 	    }
 
-	    balances[msg.sender] -= amount;
-	    _totalSupply -= amount;
-	    msg.sender.transfer(amountInWei);
+	    _burn(msg.sender, (HUSDAmount * 10**4));
+	    payable(msg.sender).transfer(ethAmount);
 	}
 }
