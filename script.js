@@ -12,7 +12,7 @@ module.exports = async function(callback) {
 
 		const test = await HUSDContract.issue({from: owner, value: web3.utils.toWei('0.04','ether')});
 		const test2 = await HUSDContract.getLatestPrice({from:owner});
-		const test3 = await HUSDContract.withdraw(50,{from:owner});
+		const test3 = await HUSDContract.withdraw(70,{from:owner});
 
 		console.log(test2.toNumber());
 		console.log(test.receipt.status);
