@@ -18,5 +18,8 @@
     "chainlink": "^0.8.2",
     "dotenv": "^16.0.0",
     "openzeppelin-contracts": "^4.0.0"
+  },
+  "devDependencies": {
+    "truffle-plugin-verify": "^0.5.21"
   }
 }
