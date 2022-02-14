@@ -5,18 +5,19 @@ import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 
-contract HUSD is ERC20{
+contract HGLD is ERC20{
 
 	using SafeMath for uint;
 
-	AggregatorV3Interface internal priceFeed;
+	address internal _base = 0x8A753747A1Fa494EC906cE90E9f37563A8AF630e;
+	address internal _quote = 0x81570059A0cb83888f1459Ec66Aad1Ac16730243;
+	uint8 internal _decimals = 8;
+
 	uint public ethCollateralFactor = 7500;
 
 
 
-	constructor() ERC20("HussainUSD StableCoin ", "HUSD"){
-		priceFeed = AggregatorV3Interface(0x8A753747A1Fa494EC906cE90E9f37563A8AF630e);
-	}
+	constructor() ERC20("HussainGLD StableCoin ", "HLD"){}
 
 	function issue() external payable{
 		uint collateralValue = ethCollateralFactor.mul(msg.value);
@@ -27,19 +28,36 @@ contract HUSD is ERC20{
 	/**
      * Returns the latest price
      */
-    function getLatestPrice() public view returns (uint) {
-        (
-            uint80 roundID, 
-            int price,
-            uint startedAt,
-            uint timeStamp,
-            uint80 answeredInRound
-        ) = priceFeed.latestRoundData();
-        return uint(price).div(10**8);
+    function getDerivedPrice() public view returns (uint){
+
+        uint decimals = 10 ** uint(_decimals);
+        ( , int basePrice, , , ) = AggregatorV3Interface(_base).latestRoundData();
+        uint8 baseDecimals = AggregatorV3Interface(_base).decimals();
+        basePrice = scalePrice(basePrice, baseDecimals);
+
+        ( , int quotePrice, , , ) = AggregatorV3Interface(_quote).latestRoundData();
+        uint8 quoteDecimals = AggregatorV3Interface(_quote).decimals();
+        quotePrice = scalePrice(quotePrice, quoteDecimals);
+
+        return (uint(basePrice).mul(decimals)).div(uint(quotePrice));
     }
 
 
-    function withdraw(uint HUSDAmount) external returns (uint){
+    function scalePrice(int _price, uint8 _priceDecimals)
+        internal
+        pure
+        returns (int)
+    {
+        if (_priceDecimals < _decimals) {
+            return _price.mul(int(10 ** uint(_decimals.sub(_priceDecimals))));
+        } else if (_priceDecimals > _decimals) {
+            return _price.div(int(10 ** uint(_priceDecimals.sub(_decimals))));
+        }
+        return _price;
+    }
+
+
+    function withdraw(uint HUSDAmount) public returns (uint){
 
 	    require(HUSDAmount <= balanceOf(msg.sender));
 	    uint ethAmount = (HUSDAmount.mul(1 ether)).div(getLatestPrice());
