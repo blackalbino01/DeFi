@@ -11,17 +11,15 @@ contract HGLD is ERC20{
 
 	address internal _base = 0x8A753747A1Fa494EC906cE90E9f37563A8AF630e;
 	address internal _quote = 0x81570059A0cb83888f1459Ec66Aad1Ac16730243;
-	uint8 internal _decimals = 8;
-
 	uint public ethCollateralFactor = 7500;
 
 
 
-	constructor() ERC20("HussainGLD StableCoin ", "HLD"){}
+	constructor() ERC20("HussainGLD StableCoin ", "HGLD"){}
 
 	function issue() external payable{
 		uint collateralValue = ethCollateralFactor.mul(msg.value);
-		uint amount = (collateralValue.mul(getLatestPrice())).div(1 ether);
+		uint amount = (collateralValue.div(1 ether)).mul(getDerivedPrice().div(10 ** 4));
 		_mint(msg.sender, amount);
 	}
 
@@ -29,38 +27,18 @@ contract HGLD is ERC20{
      * Returns the latest price
      */
     function getDerivedPrice() public view returns (uint){
-
-        uint decimals = 10 ** uint(_decimals);
+    	uint decimals = 10 ** 6;
         ( , int basePrice, , , ) = AggregatorV3Interface(_base).latestRoundData();
-        uint8 baseDecimals = AggregatorV3Interface(_base).decimals();
-        basePrice = scalePrice(basePrice, baseDecimals);
-
         ( , int quotePrice, , , ) = AggregatorV3Interface(_quote).latestRoundData();
-        uint8 quoteDecimals = AggregatorV3Interface(_quote).decimals();
-        quotePrice = scalePrice(quotePrice, quoteDecimals);
 
-        return (uint(basePrice).mul(decimals)).div(uint(quotePrice));
+        return (((uint(basePrice).mul(decimals)).div(uint(quotePrice))).div(10**4)).mul(10**2);
     }
 
 
-    function scalePrice(int _price, uint8 _priceDecimals)
-        internal
-        pure
-        returns (int)
-    {
-        if (_priceDecimals < _decimals) {
-            return _price.mul(int(10 ** uint(_decimals.sub(_priceDecimals))));
-        } else if (_priceDecimals > _decimals) {
-            return _price.div(int(10 ** uint(_priceDecimals.sub(_decimals))));
-        }
-        return _price;
-    }
+    function withdraw(uint HGLDAmount) public{
 
-
-    function withdraw(uint HUSDAmount) public returns (uint){
-
-	    require(HUSDAmount <= balanceOf(msg.sender));
-	    uint ethAmount = (HUSDAmount.mul(1 ether)).div(getLatestPrice());
+	    require(HGLDAmount.div(1 ether) <= balanceOf(msg.sender));
+	    uint ethAmount = HGLDAmount.div(getDerivedPrice().mul(10**4));
 
 	    // If we don't have enough Ether in the contract to pay out the full amount
 	    // pay an amount proportinal to what we have left.
@@ -78,10 +56,10 @@ contract HGLD is ERC20{
 
 	    if(address(this).balance <= ethAmount) {
 	      ethAmount = 
-	      (ethAmount.mul(address(this).balance).mul(getLatestPrice())).div(totalSupply().mul(1 ether));
+	      (ethAmount.mul(address(this).balance).mul(getDerivedPrice().mul(10**4))).div(totalSupply().mul(1 ether));
 	    }
 
-	    _burn(msg.sender, HUSDAmount.mul(10**4));
+	    _burn(msg.sender, (HGLDAmount.div(1 ether)).mul(10**4));
 	    payable(msg.sender).transfer(ethAmount);
 	}
 }
